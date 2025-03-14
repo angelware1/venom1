@@ -3,7 +3,6 @@ import threading
 from venomdatagather import VenomDataGather
 from venomgui import start_gui
 from venomcontext import VenomContextEngine
-# Comment out imports for modules that don’t exist yet
 # from venomgoals import VenomGoalModule
 # from venomoptions import VenomOptionModule
 # from venomexecution import VenomExecutionModule
