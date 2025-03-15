@@ -12,7 +12,7 @@ def run_async_loop(data_gather, context_engine, geo):
         while True:
             await data_gather.run_once()
             context_engine.run_once()
-            await geo.run_once()  # Add geolocation update
+            await geo.run_once()
             await asyncio.sleep(5)
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
@@ -23,7 +23,7 @@ if __name__ == "__main__":
     state_queue = Queue()
     data_gather = VenomDataGather(data_queue)
     context_engine = VenomContextEngine(data_queue, state_queue)
-    geo = VenomGeolocation(data_queue)  # Initialize geolocation
+    geo = VenomGeolocation(data_queue)
     root = tk.Tk()
     gui = VenomGUI(root, data_queue, state_queue)
     async_thread = threading.Thread(target=run_async_loop, args=(data_gather, context_engine, geo), daemon=True)
