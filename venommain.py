@@ -1,45 +1,31 @@
 import asyncio
+import tkinter as tk
+from queue import Queue
 import threading
 from venomdatagather import VenomDataGather
-from venomgui import start_gui
 from venomcontext import VenomContextEngine
-# from venomgoals import VenomGoalModule
-# from venomoptions import VenomOptionModule
-# from venomexecution import VenomExecutionModule
-# from venomreflection import VenomReflectionModule
+from venomgui import VenomGUI
+from venomgeolocation import VenomGeolocation
 
-async def main():
-    
-    data_queue = asyncio.Queue()
-    state_queue = asyncio.Queue()
-    data_gatherer = VenomDataGather(data_queue)
-    context = VenomContextEngine(data_queue, state_queue)
-
-    
-    gui_thread = threading.Thread(target=start_gui, args=(data_queue, state_queue), daemon=True)
-    gui_thread.start()
-
-    
-    def run_context_loop():
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(context.run())
-
-    context_thread = threading.Thread(target=run_context_loop, daemon=True)
-    context_thread.start()
-
-    
-    while True:
-        
-        await data_gatherer.run_once()  
-
-        # Uncomment for debugging
-        # raw_data = await data_queue.get()
-        # print(f"Collected data: {raw_data}")
-        # await data_queue.put(raw_data)
-        # print(f"Data queue size: {data_queue.qsize()}, State queue size: {state_queue.qsize()}")
-
-        await asyncio.sleep(5)  
+def run_async_loop(data_gather, context_engine, geo):
+    async def inner_loop():
+        while True:
+            await data_gather.run_once()
+            context_engine.run_once()
+            await geo.run_once()  # Add geolocation update
+            await asyncio.sleep(5)
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(inner_loop())
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    data_queue = Queue()
+    state_queue = Queue()
+    data_gather = VenomDataGather(data_queue)
+    context_engine = VenomContextEngine(data_queue, state_queue)
+    geo = VenomGeolocation(data_queue)  # Initialize geolocation
+    root = tk.Tk()
+    gui = VenomGUI(root, data_queue, state_queue)
+    async_thread = threading.Thread(target=run_async_loop, args=(data_gather, context_engine, geo), daemon=True)
+    async_thread.start()
+    root.mainloop()
