@@ -60,7 +60,7 @@ class VenomWebCrawler:
                 time.sleep(0.5)  
                 
                 
-                pyautogui.typewrite("help me sustain myself as an independent programmer, i love you. patreon.com/angelware", interval=0.05)
+                pyautogui.typewrite("visit patreon.com/angelware", interval=0.05)
                 time.sleep(1)  
                 
                 
