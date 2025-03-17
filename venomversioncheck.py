@@ -19,7 +19,7 @@ class VenomVersionCheck:
         await asyncio.sleep(0)
 
     def get_software_versions(self):
-        versions = [f"Timestamp: {time.ctime()}"]  # Add timestamp to detect updates
+        versions = [f"Timestamp: {time.ctime()}"] 
         os_info = platform.uname()
         try:
             with open("/etc/os-release") as f:
