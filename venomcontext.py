@@ -4,7 +4,6 @@ class VenomContextEngine:
     def __init__(self, data_queue, state_queue):
         self.data_queue = data_queue
         self.state_queue = state_queue
-        # Store previous data for trend analysis
         self.prev_data = None
 
     def run_once(self):
@@ -14,14 +13,14 @@ class VenomContextEngine:
                 state = self.process(raw_data)
                 self.state_queue.put(state)
                 self.data_queue.put(raw_data)
-                self.prev_data = raw_data  # Store for next iteration
+                self.prev_data = raw_data 
         except Exception as e:
             print(f"Context error: {e}")
 
     def process(self, raw_data):
         state = {}
 
-        # Compound System State
+        
         cpu_usage = raw_data["system"]["cpu_usage"]
         memory_usage = raw_data["system"]["memory_usage"]
         load_avg = raw_data["system"]["load_avg"]
@@ -35,7 +34,7 @@ class VenomContextEngine:
         else:
             state["system_overall"] = "balanced"
 
-        # CPU Trend
+       
         if self.prev_data and "cpu_usage" in self.prev_data["system"]:
             cpu_change = cpu_usage - self.prev_data["system"]["cpu_usage"]
             if cpu_change > 20:
@@ -47,7 +46,7 @@ class VenomContextEngine:
         else:
             state["cpu_trend"] = "unknown"
 
-        # Memory State
+        
         if memory_usage > 90:
             state["memory"] = "critical"
         elif memory_usage > 80:
@@ -57,7 +56,7 @@ class VenomContextEngine:
         else:
             state["memory"] = "normal"
 
-        # Disk State with Bottleneck Check
+        
         disk_usage = raw_data["system"]["disk_usage"]
         if disk_usage > 90 and cpu_usage < 50 and memory_usage < 50:
             state["disk"] = "io_bottleneck"
@@ -66,7 +65,7 @@ class VenomContextEngine:
         else:
             state["disk"] = "normal"
 
-        # Network Traffic States
+       
         sent_rate = raw_data["network"].get("sent_rate_mb", 0)
         recv_rate = raw_data["network"].get("recv_rate_mb", 0)
         if sent_rate > 20 and recv_rate > 20:
@@ -78,7 +77,7 @@ class VenomContextEngine:
         else:
             state["network_traffic"] = "normal"
 
-        # Connections Analysis
+        
         active_connections = raw_data["network"]["active_connections"]
         connection_details = raw_data["network"]["connection_details"]
         unique_remotes = len(set(conn["remote_addr"][0] for conn in connection_details if conn["remote_addr"]))
@@ -89,7 +88,7 @@ class VenomContextEngine:
         else:
             state["connections"] = "quiet"
 
-        # Packet Loss
+        
         packet_loss = raw_data["network"]["packet_loss"]
         if packet_loss > 5:
             state["packet_loss"] = "severe"
@@ -98,7 +97,7 @@ class VenomContextEngine:
         else:
             state["packet_loss"] = "normal"
 
-        # DNS Performance
+        
         dns_resolution = raw_data["network"]["dns_resolution"]
         if dns_resolution > 200 or dns_resolution == -1:
             state["dns"] = "failing"
@@ -107,7 +106,7 @@ class VenomContextEngine:
         else:
             state["dns"] = "fast"
 
-        # Ports Exposure
+        
         open_ports = len(raw_data["network"]["open_ports"])
         if open_ports > 20:
             state["ports"] = "highly_exposed"
@@ -116,7 +115,7 @@ class VenomContextEngine:
         else:
             state["ports"] = "secure"
 
-        # Interface Health
+        
         interfaces = raw_data["network"]["interfaces"]
         any_down = any(not stats["up"] for stats in interfaces.values())
         total_bytes = sum(stats["bytes_sent"] + stats["bytes_recv"] for stats in interfaces.values())
@@ -127,7 +126,7 @@ class VenomContextEngine:
         else:
             state["interfaces"] = "stable"
 
-        # Security Context
+        
         file_changes = raw_data["additional"]["file_changes"]
         if file_changes != ["No changes"] and unique_remotes > 10:
             state["security"] = "suspicious_activity"
@@ -136,7 +135,7 @@ class VenomContextEngine:
         else:
             state["security"] = "secure"
 
-        # Resource Bottlenecks
+        
         if cpu_usage > 80 and memory_usage < 50 and disk_usage < 50:
             state["bottleneck"] = "cpu_limited"
         elif memory_usage > 80 and cpu_usage < 50 and disk_usage < 50:
@@ -146,7 +145,7 @@ class VenomContextEngine:
         else:
             state["bottleneck"] = "none"
 
-        # Process Load
+       
         num_processes = raw_data["system"]["num_processes"]
         if num_processes > 200:
             state["processes"] = "overloaded"
@@ -155,7 +154,7 @@ class VenomContextEngine:
         else:
             state["processes"] = "normal"
 
-        # Battery State
+        
         battery_percent = raw_data["system"].get("battery_percent")
         if battery_percent is not None:
             if battery_percent < 10:
@@ -171,7 +170,7 @@ class VenomContextEngine:
         else:
             state["battery"] = "N/A"
 
-        # Temperature Warning
+        
         temperature = raw_data["system"].get("temperature")
         if temperature is not None:
             if temperature > 85:
@@ -183,7 +182,7 @@ class VenomContextEngine:
         else:
             state["temperature"] = "N/A"
 
-        # Uptime Context
+        
         uptime = raw_data["system"]["uptime"]
         if uptime > 604800:  # 7 days
             state["uptime"] = "very_long"
