@@ -184,9 +184,9 @@ class VenomContextEngine:
 
         
         uptime = raw_data["system"]["uptime"]
-        if uptime > 604800:  # 7 days
+        if uptime > 604800:  
             state["uptime"] = "very_long"
-        elif uptime > 86400:  # 24 hours
+        elif uptime > 86400:  
             state["uptime"] = "long"
         else:
             state["uptime"] = "short"
