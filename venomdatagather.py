@@ -30,7 +30,7 @@ class VenomDataGather:
         self.prev_packets_recv = psutil.net_io_counters().packets_recv
         self.prev_errout = psutil.net_io_counters().errout
         self.prev_errin = psutil.net_io_counters().errin
-        # For deep metrics rate calculations
+        
         self.prev_io = psutil.disk_io_counters()
         self.prev_io_time = time.time()
         self.prev_swap_io = psutil.swap_memory()
@@ -47,7 +47,7 @@ class VenomDataGather:
         self.gather_security_metrics()
         self.update_historical_trends()
         self.gather_additional_metrics()
-        # Calculate network rates and packet loss
+        
         current_sent = psutil.net_io_counters().bytes_sent
         current_recv = psutil.net_io_counters().bytes_recv
         current_time = time.time()
@@ -73,11 +73,11 @@ class VenomDataGather:
         self.prev_packets_recv = psutil.net_io_counters().packets_recv
         self.prev_errout = psutil.net_io_counters().errout
         self.prev_errin = psutil.net_io_counters().errin
-        print(f"Data gathered: {self.data['system'].get('cpu_usage', 'N/A')} CPU%, queueing data")  # Debug print
+        print(f"Data gathered: {self.data['system'].get('cpu_usage', 'N/A')} CPU%, queueing data")  
         self.data_queue.put(self.data.copy())
 
     def gather_system_metrics(self):
-        # Existing metrics
+        
         self.data["system"]["cpu_usage"] = psutil.cpu_percent(interval=1)
         self.data["system"]["memory_usage"] = psutil.virtual_memory().percent
         self.data["system"]["disk_usage"] = psutil.disk_usage("/").percent
@@ -105,7 +105,7 @@ class VenomDataGather:
         fans = psutil.sensors_fans()
         self.data["system"]["fan_speeds"] = {name: [f.current for f in fan_list] for name, fan_list in fans.items()} if fans else {}
 
-        # Expanded process list
+        
         processes = []
         for proc in psutil.process_iter([
             'pid', 'name', 'cpu_percent', 'memory_percent', 'status', 'username',
@@ -134,14 +134,14 @@ class VenomDataGather:
                 continue
         self.data["system"]["processes"] = processes
 
-        # New deep system metrics
-        # Disk I/O Details
+        
+        
         io = psutil.disk_io_counters()
         if io and self.prev_io:
             delta_time = time.time() - self.prev_io_time
             if delta_time > 0:
-                self.data["system"]["disk_read_bytes_sec"] = (io.read_bytes - self.prev_io.read_bytes) / delta_time / 1024 / 1024  # MB/s
-                self.data["system"]["disk_write_bytes_sec"] = (io.write_bytes - self.prev_io.write_bytes) / delta_time / 1024 / 1024  # MB/s
+                self.data["system"]["disk_read_bytes_sec"] = (io.read_bytes - self.prev_io.read_bytes) / delta_time / 1024 / 1024  
+                self.data["system"]["disk_write_bytes_sec"] = (io.write_bytes - self.prev_io.write_bytes) / delta_time / 1024 / 1024  
                 self.data["system"]["disk_read_iops"] = (io.read_count - self.prev_io.read_count) / delta_time
                 self.data["system"]["disk_write_iops"] = (io.write_count - self.prev_io.write_count) / delta_time
             else:
@@ -157,23 +157,23 @@ class VenomDataGather:
         self.prev_io = io
         self.prev_io_time = time.time()
 
-        # Memory Details
+       
         vm = psutil.virtual_memory()
-        self.data["system"]["memory_active"] = vm.active / 1024 / 1024  # MB
-        self.data["system"]["memory_inactive"] = vm.inactive / 1024 / 1024  # MB
-        self.data["system"]["memory_wired"] = getattr(vm, "wired", 0) / 1024 / 1024  # MB, if available
-        self.data["system"]["memory_cached"] = getattr(vm, "cached", 0) / 1024 / 1024  # MB, if available
-        self.data["system"]["page_faults"] = psutil.cpu_stats().soft_interrupts if hasattr(psutil.cpu_stats(), "soft_interrupts") else 0  # Approximation
+        self.data["system"]["memory_active"] = vm.active / 1024 / 1024  
+        self.data["system"]["memory_inactive"] = vm.inactive / 1024 / 1024  
+        self.data["system"]["memory_wired"] = getattr(vm, "wired", 0) / 1024 / 1024  
+        self.data["system"]["memory_cached"] = getattr(vm, "cached", 0) / 1024 / 1024  
+        self.data["system"]["page_faults"] = psutil.cpu_stats().soft_interrupts if hasattr(psutil.cpu_stats(), "soft_interrupts") else 0 
         if self.prev_swap_io and delta_time > 0:
-            self.data["system"]["swap_in_rate"] = (swap.sin - self.prev_swap_io.sin) / delta_time  # Pages in/sec
-            self.data["system"]["swap_out_rate"] = (swap.sout - self.prev_swap_io.sout) / delta_time  # Pages out/sec
+            self.data["system"]["swap_in_rate"] = (swap.sin - self.prev_swap_io.sin) / delta_time  
+            self.data["system"]["swap_out_rate"] = (swap.sout - self.prev_swap_io.sout) / delta_time  
         else:
             self.data["system"]["swap_in_rate"] = 0
             self.data["system"]["swap_out_rate"] = 0
         self.prev_swap_io = swap
         self.prev_swap_io_time = time.time()
 
-        # System Interrupts and Context Switches
+        
         cpu_stats = psutil.cpu_stats()
         if hasattr(cpu_stats, "interrupts") and self.prev_interrupts:
             self.data["system"]["interrupt_rate"] = (cpu_stats.interrupts - self.prev_interrupts) / delta_time
@@ -186,16 +186,16 @@ class VenomDataGather:
             self.data["system"]["ctx_switch_rate"] = 0
         self.prev_ctx_switches = cpu_stats.ctx_switches if hasattr(cpu_stats, "ctx_switches") else 0
 
-        # Thermal Zones
+        
         self.data["system"]["thermal_zones"] = {name: [t.current for t in temps] for name, temps in temperatures.items()} if temperatures else {}
 
-        # Power Consumption
+        
         if battery and not battery.power_plugged and hasattr(battery, "secsleft"):
             self.data["system"]["battery_discharge_rate"] = (100 - battery.percent) / (battery.secsleft / 3600) if battery.secsleft > 0 else 0  # %/hour
         else:
             self.data["system"]["battery_discharge_rate"] = None
 
-        # Filesystem Stats
+        
         self.data["system"]["filesystems"] = []
         for part in psutil.disk_partitions():
             try:
@@ -203,22 +203,22 @@ class VenomDataGather:
                 self.data["system"]["filesystems"].append({
                     "mountpoint": part.mountpoint,
                     "fstype": part.fstype,
-                    "total": usage.total / 1024 / 1024,  # MB
-                    "used": usage.used / 1024 / 1024,    # MB
-                    "free": usage.free / 1024 / 1024     # MB
+                    "total": usage.total / 1024 / 1024,  
+                    "used": usage.used / 1024 / 1024,    
+                    "free": usage.free / 1024 / 1024    
                 })
             except Exception:
                 continue
 
-        # System Load Details
+        
         load1, load5, load15 = psutil.getloadavg()
         num_cores = psutil.cpu_count()
-        self.data["system"]["load_avg_1min"] = load1 / num_cores  # Normalized
+        self.data["system"]["load_avg_1min"] = load1 / num_cores  
         self.data["system"]["load_avg_5min"] = load5 / num_cores
         self.data["system"]["load_avg_15min"] = load15 / num_cores
 
-        # Kernel Metrics
-        self.data["system"]["total_threads"] = sum(p.num_threads() or 0 for p in psutil.process_iter(['num_threads']))  # Fixed: Call num_threads()
+        
+        self.data["system"]["total_threads"] = sum(p.num_threads() or 0 for p in psutil.process_iter(['num_threads']))  
 
     async def gather_network_metrics(self):
         io_counters = psutil.net_io_counters()
