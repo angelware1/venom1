@@ -133,7 +133,7 @@ class VenomGUI:
                 self.states = self.state_queue.get_nowait()
                 print(f"GUI retrieved states: {self.states.get('system_overall', 'N/A')}")
 
-            if queue_had_data:  
+            if queue_had_data:  # Only update GUI if new data arrived
                 current_time = time.time()
                 for category, metrics in self.labels.items():
                     if category == "context":
