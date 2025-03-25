@@ -3,6 +3,8 @@ import tkinter as tk
 from queue import Queue
 import threading
 import time
+import os
+import subprocess
 from venomdatagather import VenomDataGather
 from venomcontext import VenomContextEngine
 from venomgui import VenomGUI
@@ -41,6 +43,75 @@ def run_async_loop(data_gather, context_engine, geo, wifi, version, propagation)
     except Exception as e:
         print(f"Async loop crashed: {e}")
 
+class SimpleNetworkDiscovery:
+    def __init__(self):
+        self.devices = []
+        self.logs = []
+
+    def discover(self):
+        self.logs.append(f"Scanning network at {time.ctime()}")
+        try:
+            # Run arp -a to get devices
+            result = subprocess.check_output(["arp", "-a"], text=True)
+            self.logs.append("ARP scan completed")
+            lines = result.splitlines()
+            for line in lines:
+                if "(" in line and ")" in line:
+                    ip = line.split("(")[1].split(")")[0]
+                    mac_start = line.find("at ")
+                    if mac_start != -1:
+                        mac = line[mac_start + 3:].split(" ")[0]
+                        self.devices.append({"ip": ip, "mac": mac})
+                        self.logs.append(f"Found: {ip} ({mac})")
+            if not self.devices:
+                self.logs.append("No devices found in ARP cache")
+        except subprocess.CalledProcessError as e:
+            self.logs.append(f"Error running arp -a: {e}. Run with sudo for better results.")
+        except Exception as e:
+            self.logs.append(f"Unexpected error: {e}")
+
+    def get_results(self):
+        return self.devices, self.logs
+
+def setup_p2p_window(root):
+    p2p_window = tk.Toplevel(root)
+    p2p_window.title("Venom P2P Discovery")
+    p2p_window.geometry("600x400")
+    
+    p2p_text = tk.Text(p2p_window, height=20, width=70)
+    p2p_text.pack(padx=10, pady=10, fill="both", expand=True)
+    
+    scrollbar = tk.Scrollbar(p2p_window, command=p2p_text.yview)
+    scrollbar.pack(side="right", fill="y")
+    p2p_text.config(yscrollcommand=scrollbar.set)
+    
+    if os.geteuid() != 0:
+        p2p_text.insert("end", "Warning: Run with sudo for best results (using ARP cache only).\n")
+        print("P2P running without sudo—limited to ARP cache")
+    else:
+        print("P2P running with sudo—full scan possible")
+    
+    try:
+        discovery = SimpleNetworkDiscovery()
+        discovery.discover()
+        devices, logs = discovery.get_results()
+        
+        p2p_text.insert("end", "Discovered Devices:\n")
+        if devices:
+            for device in devices:
+                p2p_text.insert("end", f"IP: {device['ip']} | MAC: {device['mac']}\n")
+            p2p_text.insert("end", f"\nTotal devices: {len(devices)}\n")
+        else:
+            p2p_text.insert("end", "No devices found.\n")
+        
+        p2p_text.insert("end", "\nEvent Log:\n")
+        for log in logs:
+            p2p_text.insert("end", f"{log}\n")
+        print("P2P window setup complete")
+    except Exception as e:
+        p2p_text.insert("end", f"Error: {e}\n")
+        print(f"P2P setup failed: {e}")
+
 if __name__ == "__main__":
     data_queue = Queue()
     state_queue = Queue()
@@ -51,14 +122,10 @@ if __name__ == "__main__":
     version = VenomVersionCheck(data_queue)
     propagation = VenomPropagation(data_queue)
     
-    # First GUI window (original)
     root = tk.Tk()
     gui = VenomGUI(root, data_queue, state_queue)
     
-    # Second blank GUI window
-    second_window = tk.Toplevel()
-    second_window.title("Blank Venom Window")
-    second_window.geometry("400x300")  # Set a default size, adjustable as needed
+    setup_p2p_window(root)
     
     async_thread = threading.Thread(target=run_async_loop, args=(data_gather, context_engine, geo, wifi, version, propagation), daemon=True)
     async_thread.start()
