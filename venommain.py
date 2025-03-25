@@ -2,7 +2,7 @@ import asyncio
 import tkinter as tk
 from queue import Queue
 import threading
-import time 
+import time
 from venomdatagather import VenomDataGather
 from venomcontext import VenomContextEngine
 from venomgui import VenomGUI
@@ -50,8 +50,17 @@ if __name__ == "__main__":
     wifi = VenomWifiCheck(data_queue)
     version = VenomVersionCheck(data_queue)
     propagation = VenomPropagation(data_queue)
+    
+    # First GUI window (original)
     root = tk.Tk()
     gui = VenomGUI(root, data_queue, state_queue)
+    
+    # Second blank GUI window
+    second_window = tk.Toplevel()
+    second_window.title("Blank Venom Window")
+    second_window.geometry("400x300")  # Set a default size, adjustable as needed
+    
     async_thread = threading.Thread(target=run_async_loop, args=(data_gather, context_engine, geo, wifi, version, propagation), daemon=True)
     async_thread.start()
+    
     root.mainloop()
