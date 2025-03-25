@@ -4,7 +4,6 @@ from queue import Queue
 import threading
 import time
 import os
-import subprocess
 from venomdatagather import VenomDataGather
 from venomcontext import VenomContextEngine
 from venomgui import VenomGUI
@@ -12,6 +11,7 @@ from venomgeolocation import VenomGeolocation
 from venomwificheck import VenomWifiCheck
 from venomversioncheck import VenomVersionCheck
 from venompropagation import VenomPropagation
+from venom_peertopeerdiscovery import SimpleNetworkDiscovery
 
 def run_async_loop(data_gather, context_engine, geo, wifi, version, propagation):
     async def inner_loop():
@@ -42,36 +42,6 @@ def run_async_loop(data_gather, context_engine, geo, wifi, version, propagation)
         loop.run_until_complete(inner_loop())
     except Exception as e:
         print(f"Async loop crashed: {e}")
-
-class SimpleNetworkDiscovery:
-    def __init__(self):
-        self.devices = []
-        self.logs = []
-
-    def discover(self):
-        self.logs.append(f"Scanning network at {time.ctime()}")
-        try:
-            # Run arp -a to get devices
-            result = subprocess.check_output(["arp", "-a"], text=True)
-            self.logs.append("ARP scan completed")
-            lines = result.splitlines()
-            for line in lines:
-                if "(" in line and ")" in line:
-                    ip = line.split("(")[1].split(")")[0]
-                    mac_start = line.find("at ")
-                    if mac_start != -1:
-                        mac = line[mac_start + 3:].split(" ")[0]
-                        self.devices.append({"ip": ip, "mac": mac})
-                        self.logs.append(f"Found: {ip} ({mac})")
-            if not self.devices:
-                self.logs.append("No devices found in ARP cache")
-        except subprocess.CalledProcessError as e:
-            self.logs.append(f"Error running arp -a: {e}. Run with sudo for better results.")
-        except Exception as e:
-            self.logs.append(f"Unexpected error: {e}")
-
-    def get_results(self):
-        return self.devices, self.logs
 
 def setup_p2p_window(root):
     p2p_window = tk.Toplevel(root)
